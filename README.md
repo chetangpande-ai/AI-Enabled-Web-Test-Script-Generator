@@ -33,6 +33,13 @@ flowchart TD
   H --> J
 ```
 
+## Detailed Docs
+
+- [Agent docs index](DOCs/README.md)
+- [Test data requirements](DOCs/test-data-requirements.md)
+- [Test data connectors and resolver](DOCs/test-data-connectors.md)
+- [Playwright browser explorer](DOCs/playwright-browser-explorer.md)
+
 ## Setup
 
 ```bash
