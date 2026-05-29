@@ -15,8 +15,14 @@ FIELD_ALIASES = {
     "username": {"username", "user", "login"},
     "password": {"password", "passcode"},
     "searchTerm": {"search", "query", "keyword"},
+    "sku": {"sku", "product code"},
+    "name": {"product", "name"},
     "firstName": {"first", "firstname", "given"},
     "lastName": {"last", "lastname", "surname", "family"},
+    "line1": {"address", "street", "line1", "line 1"},
+    "city": {"city"},
+    "state": {"state", "province"},
+    "postalCode": {"postal", "zip", "postcode", "postalcode"},
 }
 
 
@@ -101,6 +107,28 @@ def _missing_placeholder(key: str | None, field: dict[str, Any]) -> str:
     return f"TODO_{re.sub(r'[^A-Za-z0-9]+', '_', str(label)).upper()}"
 
 
+def _resolved_value_for_key(state: AgentState, key: str | None) -> tuple[Any, str | None]:
+    if not key:
+        return None, None
+
+    resolved = state.get("resolved_test_data", {}).get("resolvedData", {})
+    key_aliases = [key]
+    if key == "email":
+        key_aliases.append("username")
+    if key == "username":
+        key_aliases.append("email")
+
+    for object_name in ("user", "product", "shippingAddress", "paymentMethod"):
+        data = resolved.get(object_name, {})
+        if not isinstance(data, dict):
+            continue
+        for candidate_key in key_aliases:
+            value = data.get(candidate_key)
+            if value not in {None, ""}:
+                return value, f"{object_name}.{candidate_key}"
+    return None, None
+
+
 async def _playwright_locator(page, locator: LocatorCandidate):
     kind = locator.get("kind")
     if kind == "role":
@@ -126,6 +154,32 @@ async def _execute_fill(page, field: dict[str, Any], value: str) -> None:
 
 
 async def explore_flow(state: AgentState) -> dict[str, Any]:
+    if state.get("skip_flow"):
+        return {
+            "exploration_status": "blocked",
+            "missing_info": sorted(set(list(state.get("missing_info", [])) + ["Flow skipped by human during missing-data HITL."])),
+            "automated_flows": [],
+            "not_automated_flows": [step.get("text", "") for step in state.get("analyzed_flow", [])],
+            "explored_actions": [],
+        }
+    if state.get("stop_requested"):
+        return {
+            "exploration_status": "blocked",
+            "missing_info": sorted(set(list(state.get("missing_info", [])) + ["Flow rejected by human during missing-data HITL."])),
+            "automated_flows": [],
+            "not_automated_flows": [step.get("text", "") for step in state.get("analyzed_flow", [])],
+            "explored_actions": [],
+        }
+    if state.get("missing_test_data") and not state.get("data_ready"):
+        missing = list(state.get("missing_info", []))
+        return {
+            "exploration_status": "blocked",
+            "missing_info": sorted(set(missing)),
+            "automated_flows": [],
+            "not_automated_flows": [step.get("text", "") for step in state.get("analyzed_flow", [])],
+            "explored_actions": [],
+        }
+
     try:
         from playwright.async_api import async_playwright
     except ImportError as exc:
@@ -219,10 +273,10 @@ async def explore_flow(state: AgentState) -> dict[str, Any]:
                     filled = False
                     for field in relevant_fields:
                         key = _test_data_key_for_field(field, step)
-                        value = state.get("test_data", {}).get(key or "")
+                        value, value_path = _resolved_value_for_key(state, key)
                         if not value:
                             if key:
-                                missing.append(f"Step {step['index']} needs test data key '{key}'.")
+                                missing.append(f"Step {step['index']} needs resolved test data path for '{key}'.")
                             continue
                         await _execute_fill(page, field, str(value))
                         filled = True
@@ -232,6 +286,7 @@ async def explore_flow(state: AgentState) -> dict[str, Any]:
                                 "step_text": step["text"],
                                 "action": "fill",
                                 "value_key": key,
+                                "value_path": value_path,
                                 "value_placeholder": _missing_placeholder(key, field),
                                 "target": _candidate_text(field),
                                 "url_before": url_before,
@@ -253,7 +308,7 @@ async def explore_flow(state: AgentState) -> dict[str, Any]:
                 if intent == "select":
                     field = _best_candidate(context.get("inputs", []), keywords)
                     key = _test_data_key_for_field(field or {}, step) if field else None
-                    value = state.get("test_data", {}).get(key or "")
+                    value, value_path = _resolved_value_for_key(state, key)
                     if not field or not value:
                         missing.append(f"Step {step['index']} needs selectable field details and test data.")
                         not_automated.append(step["text"])
@@ -267,6 +322,7 @@ async def explore_flow(state: AgentState) -> dict[str, Any]:
                             "step_text": step["text"],
                             "action": "select",
                             "value_key": key,
+                            "value_path": value_path,
                             "value_placeholder": _missing_placeholder(key, field),
                             "target": _candidate_text(field),
                             "url_before": url_before,

@@ -1,0 +1,13 @@
+{
+  "shippingAddresses": [
+    {
+      "alias": "qaShippingAddress",
+      "line1": "Test Street 1",
+      "city": "Pune",
+      "state": "MH",
+      "postalCode": "411014"
+    }
+  ],
+  "paymentMethods": []
+}
+

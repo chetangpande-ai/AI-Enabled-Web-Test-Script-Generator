@@ -51,15 +51,25 @@ def _safe_name(prefix: str, index: int) -> str:
     return f"{prefix}{index}"
 
 
-def _data_keys(actions: list[ExploredAction]) -> list[tuple[str, str]]:
-    keys: list[tuple[str, str]] = []
-    seen: set[str] = set()
-    for action in actions:
-        key = action.get("value_key")
-        if key and key not in seen:
-            seen.add(key)
-            keys.append((key, action.get("value_placeholder", f"TODO_{key.upper()}")))
-    return keys
+def _test_data_expression(action: ExploredAction) -> str:
+    value_path = action.get("value_path")
+    if value_path:
+        return f"testData.{value_path}"
+
+    key = action.get("value_key", "exampleValue")
+    fallback_paths = {
+        "username": "testData.user.username",
+        "email": "testData.user.username",
+        "password": "testData.user.password",
+        "searchTerm": "testData.product.searchTerm",
+        "sku": "testData.product.sku",
+        "name": "testData.product.name",
+        "line1": "testData.shippingAddress.line1",
+        "city": "testData.shippingAddress.city",
+        "state": "testData.shippingAddress.state",
+        "postalCode": "testData.shippingAddress.postalCode",
+    }
+    return fallback_paths.get(key, f"testData.{key}")
 
 
 def _action_lines(action: ExploredAction, index: int) -> list[str]:
@@ -74,12 +84,12 @@ def _action_lines(action: ExploredAction, index: int) -> list[str]:
 
     action_type = action.get("action")
     if action_type == "fill":
-        value_key = action.get("value_key", "value")
-        lines.append(f"    await {locator_name}.fill(testData.{value_key});")
-        lines.append(f"    await expect({locator_name}).toHaveValue(testData.{value_key});")
+        value_expr = _test_data_expression(action)
+        lines.append(f"    await {locator_name}.fill({value_expr});")
+        lines.append(f"    await expect({locator_name}).toHaveValue({value_expr});")
     elif action_type == "select":
-        value_key = action.get("value_key", "value")
-        lines.append(f"    await {locator_name}.selectOption(testData.{value_key});")
+        value_expr = _test_data_expression(action)
+        lines.append(f"    await {locator_name}.selectOption({value_expr});")
     elif action_type == "check":
         lines.append(f"    await {locator_name}.check();")
         lines.append(f"    await expect({locator_name}).toBeChecked();")
@@ -103,24 +113,14 @@ def _deterministic_script(state: AgentState) -> str:
     actions = state.get("explored_actions", [])
     title = "Generated web flow"
     flow = compact_text(state.get("flow", "Generated flow"), 140)
-    data_entries = _data_keys(actions)
-    data_lines = [
-        f"      {key}: process.env.{key.upper()} ?? {_ts_string(placeholder)},"
-        for key, placeholder in data_entries
-    ]
-    if not data_lines:
-        data_lines = ["      exampleValue: process.env.EXAMPLE_VALUE ?? 'TODO_VALUE',"]
 
     body: list[str] = []
-    body.append("import { test, expect } from '@playwright/test';")
+    body.append("import { test, expect } from '../fixtures/test-data.fixture';")
     body.append("")
     body.append(f"test.describe({_ts_string(title)}, () => {{")
-    body.append(f"  test({_ts_string(flow)}, async ({{ page }}) => {{")
-    body.append("    const testData = {")
-    body.extend(data_lines)
-    body.append("    };")
+    body.append(f"  test({_ts_string(flow)}, async ({{ page, testData }}) => {{")
     body.append("")
-    body.append(f"    await page.goto({_ts_string(state.get('app_url', ''))});")
+    body.append(f"    await page.goto(process.env.BASE_URL ?? {_ts_string(state.get('app_url', ''))});")
     body.append("    await expect(page).not.toHaveURL('about:blank');")
     body.append("")
 
@@ -130,6 +130,7 @@ def _deterministic_script(state: AgentState) -> str:
     if not actions:
         body.append("    // TODO: Add steps after providing missing information listed in reports/missing_info.md.")
         body.append("    await expect(page.locator('body')).toBeVisible();")
+        body.append("    void testData;")
 
     body.append("  });")
     body.append("});")
@@ -152,6 +153,7 @@ def _llm_refine_script(state: AgentState, script: str) -> str:
         "url": state.get("app_url"),
         "flow": state.get("flow"),
         "actions": state.get("explored_actions", []),
+        "resolved_test_data": state.get("resolved_test_data", {}),
         "missing_info": state.get("missing_info", []),
     }
     llm = ChatOpenAI(model=os.getenv("CRAWLER_AGENT_MODEL", "gpt-4o-mini"), temperature=0)

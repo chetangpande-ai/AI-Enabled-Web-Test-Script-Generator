@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "alias": "validCustomer",
+      "username": "qa_customer_01",
+      "passwordEnv": "QA_CUSTOMER_PASSWORD",
+      "role": "customer",
+      "status": "active"
+    }
+  ]
+}
+

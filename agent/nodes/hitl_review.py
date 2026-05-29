@@ -30,6 +30,8 @@ def prepare_hitl_review(state: AgentState) -> dict[str, Any]:
         "",
         f"- Generated test script: `{script_path}`",
         f"- Exploration status: `{state.get('exploration_status', 'unknown')}`",
+        f"- Test data ready: `{state.get('data_ready', False)}`",
+        f"- Missing-data HITL status: `{state.get('missing_data_hitl_status', 'unknown')}`",
         f"- Validation status: `{state.get('validation_status', 'unknown')}`",
         "",
         "## Explored Steps",
@@ -59,11 +61,18 @@ def prepare_hitl_review(state: AgentState) -> dict[str, Any]:
             "",
             _bullets(state.get("not_automated_flows", [])),
             "",
+            "## Missing Test Data",
+            "",
+            _bullets([item.get("exactInputNeeded", "") for item in state.get("missing_test_data", [])]),
+            "",
             "## Human Review Options",
             "",
             "- Approve: `python -m agent review --decision approve --notes \"looks good\"`",
             "- Reject: `python -m agent review --decision reject --notes \"reason\"`",
             "- Request changes: `python -m agent review --decision changes --notes \"specific changes\"`",
+            "- Provide missing data: rerun with `--test-data` containing only the missing fields.",
+            "- Use synthetic data: allowed only when `reports/test_data_requirements.md` says synthetic data is allowed.",
+            "- Change data source: update `agent/config/data_sources.yaml` and rerun.",
             "",
         ]
     )
@@ -80,6 +89,7 @@ def prepare_hitl_review(state: AgentState) -> dict[str, Any]:
     review_payload = {
         "status": "pending",
         "generated_script_path": script_path,
+        "missing_data_hitl_status": state.get("missing_data_hitl_status"),
         "validation_status": state.get("validation_status"),
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "notes": "Awaiting human approval, rejection, or requested changes.",
@@ -111,4 +121,3 @@ def apply_review_decision(decision: str, notes: str = "") -> str:
     )
     write_json(REVIEW, payload)
     return str(REVIEW)
-

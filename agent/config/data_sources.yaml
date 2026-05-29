@@ -1,0 +1,46 @@
+environment: qa
+
+sources:
+  inline:
+    enabled: true
+
+  env:
+    enabled: true
+    keys:
+      customer_username: QA_CUSTOMER_USERNAME
+      customer_password: QA_CUSTOMER_PASSWORD
+      test_data_api_token: TEST_DATA_API_TOKEN
+      db_connection_string: QA_DB_CONNECTION_STRING
+
+  json:
+    enabled: true
+    paths:
+      users: generated-tests/test-data/users.json
+      products: generated-tests/test-data/products.json
+      checkout: generated-tests/test-data/checkout-data.json
+
+  csv:
+    enabled: true
+    paths:
+      users: data/users.csv
+      products: data/products.csv
+      checkout: data/checkout-data.csv
+
+  database:
+    enabled: false
+    type: postgres
+    connection_env_var: QA_DB_CONNECTION_STRING
+    allowed_queries:
+      - get_active_customer
+      - get_in_stock_product
+      - get_customer_with_balance
+
+  api:
+    enabled: false
+    base_url_env_var: TEST_DATA_API_URL
+    token_env_var: TEST_DATA_API_TOKEN
+    allowed_operations:
+      - get_active_customer
+      - get_in_stock_product
+      - create_test_customer
+      - setup_cart

@@ -1,0 +1,13 @@
+{
+  "missingData": [],
+  "notes": "No missing-data HITL gate has been reached yet.",
+  "status": "not_started",
+  "supportedResponses": [
+    "provide missing data",
+    "skip this flow",
+    "use synthetic data if allowed",
+    "change data source",
+    "reject and stop"
+  ],
+  "updated_at": null
+}

@@ -6,9 +6,9 @@
     "strict": true,
     "types": ["node", "@playwright/test"],
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true
   },
   "include": ["tests/**/*.ts", "playwright.config.ts"]
 }
-

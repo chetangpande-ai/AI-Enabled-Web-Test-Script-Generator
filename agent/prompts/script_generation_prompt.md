@@ -3,6 +3,8 @@ You refine a generated Playwright Test script.
 Rules:
 - Return only TypeScript code.
 - Keep Playwright Test format with test.describe, test, and expect.
+- Import `test` and `expect` from `../fixtures/test-data.fixture`.
+- Use the `testData` fixture for generated data instead of hardcoded values.
 - Keep primary locators in priority order: getByRole, getByLabel, getByPlaceholder, getByText, stable test id/data attributes, CSS only as fallback.
 - Preserve backup locator comments for important actions.
 - Use placeholders or environment variables for missing test data.
@@ -14,4 +16,3 @@ Compact trace:
 
 Draft script:
 {{DRAFT_SCRIPT}}
-

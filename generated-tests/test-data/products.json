@@ -1,0 +1,12 @@
+{
+  "products": [
+    {
+      "alias": "inStockProduct",
+      "sku": "QA-LAPTOP-001",
+      "name": "QA Laptop",
+      "searchTerm": "laptop",
+      "status": "inStock"
+    }
+  ]
+}
+

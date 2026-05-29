@@ -5,5 +5,5 @@ node_modules/
 generated-tests/test-results/
 generated-tests/playwright-report/
 generated-tests/.cache/
+generated-tests/test-data/resolved-test-data.json
 .env
-

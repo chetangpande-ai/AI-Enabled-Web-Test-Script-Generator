@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from agent.state import PageContext
+from agent.state import AgentState, PageContext
 from agent.utils.token_budget import compact_text
 
 
@@ -80,3 +80,18 @@ async def extract_page_context(page) -> PageContext:
         "errors": [compact_text(item, 180) for item in data.get("errors", [])[:10]],
     }
 
+
+def finalize_page_context(state: AgentState) -> dict[str, Any]:
+    """Graph node that keeps cached page summaries compact before script generation."""
+    compact_cache: dict[str, PageContext] = {}
+    for url, context in state.get("page_context_cache", {}).items():
+        compact_cache[url] = {
+            "url": context.get("url", url),
+            "title": compact_text(context.get("title", ""), 120),
+            "buttons": context.get("buttons", [])[:MAX_ITEMS],
+            "links": context.get("links", [])[:MAX_ITEMS],
+            "inputs": context.get("inputs", [])[:MAX_ITEMS],
+            "roles": context.get("roles", [])[:MAX_ITEMS],
+            "errors": context.get("errors", [])[:10],
+        }
+    return {"page_context_cache": compact_cache}
