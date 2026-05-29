@@ -1,0 +1,7 @@
+{
+  "generated_script_path": "generated-tests/tests/generated-flow.spec.ts",
+  "notes": "No agent exploration has been run yet. Generate a flow, then approve, reject, or request changes.",
+  "status": "pending",
+  "updated_at": null,
+  "validation_status": "passed"
+}

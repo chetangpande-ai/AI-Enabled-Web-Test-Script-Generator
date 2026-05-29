@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+generated-tests/test-results/
+generated-tests/playwright-report/
+generated-tests/.cache/
+.env
+

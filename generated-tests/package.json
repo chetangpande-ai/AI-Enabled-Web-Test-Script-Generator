@@ -1,0 +1,16 @@
+{
+  "name": "generated-web-flow-tests",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "install:browsers": "playwright install",
+    "test": "playwright test",
+    "test:list": "playwright test --list",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.0"
+  }
+}
